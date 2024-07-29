@@ -1,0 +1,29 @@
+{% extend 'layout.html' %}
+
+{% block tilte %}
+    TurView: History
+{% endblock %}
+
+{% block body %}
+    <div><img href="TurView/static/TurView logo.png" alt="logo" class="history_logo"></div>
+    <table id="history">
+        <thead>
+            <tr>
+                <th class="table_header text-without-padding">Time and Date</th>
+                <th class="table_header">TurViewee CV</th>
+                <th class="table_header">Job Description</th>
+                <th class="table_header">TurView Report</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for interview in interviews %}
+                <tr>
+                    <td class="table_cell text-without-padding">{{  }}</td>
+                    <td class="table_cell">{{  }}</td>
+                    <td class="table_cell">{{  }}</td>
+                    <td class="table_cell">{{  }}</td>
+            {% endfor %}
+                </tr>
+        </tbody>
+    </table>
+{% endblock %}

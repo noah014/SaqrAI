@@ -1,0 +1,14 @@
+{% extends 'layout.html' %}
+
+{% block tilte %}
+    TurView
+{% endblock %}
+
+{% block body %}
+    <div><img href="TurView/static/TurView logo.png" alt="logo" class="index_logo"></div> 
+    <div>
+        <form action="/interview" method="post">
+            <input type="submit" value="Start Interview" name="start">
+        </form>
+    </div> 
+{% endblock %}

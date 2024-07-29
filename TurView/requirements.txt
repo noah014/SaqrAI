@@ -1,0 +1,7 @@
+ai71
+langchain
+langchain-core
+langchain-community
+pyttsx3
+flask
+faster-whisper
