@@ -2,4 +2,5 @@ ai71
 pyttsx3
 flask
 faster-whisper
-openai
+docxtpl
+docx2pdf
