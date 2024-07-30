@@ -5,8 +5,8 @@ import sqlite3
 '''
 database schema
 
-table 1: id, interview date and time, interviwee name #temp
-table 2: id, intervieww cv (link), job description, interview report(link)
+table 1: id, interview date and time, interviwee name 
+table 2: interview id, user_id, intervieww cv (link), job description, interview report(link)
 '''
 
 app = Flask(__name__)
