@@ -1,5 +1,6 @@
 from ai71 import AI71
 import ast
+import random
 
 AI71_API_KEY = "api71-api-cbdf95af-ec38-4f97-8d7e-cb2ec3823f46"
 
@@ -17,6 +18,110 @@ class FalconChatbot:
         self.questions = []
         self.answers_from_user = []
         self.answers_from_llm = []
+        self.results = []
+
+        # Fillers in Between Each Question --> 98 Fillers
+        self.fillers = [ 
+            "That's interesting. Let's move on to the next question.",
+            "Great, thank you for that. Here's the next question.",
+            "I appreciate your response. Now, onto the next question.",
+            "Thanks for sharing. Let's proceed with the next question.",
+            "Good to know. Here's another question for you.",
+            "Thank you for your answer. Let's continue.",
+            "Alright, let's move to the next question.",
+            "Thanks for that. Here's the next question.",
+            "I see. Let's go to the next question.",
+            "Appreciate your input. Next question coming up.",
+            "Got it. Now, let's move on.",
+            "Thanks for your response. Next question.",
+            "Understood. Let's proceed.",
+            "Okay, let's continue with the next question.",
+            "Thank you. Here's another question.",
+            "Great, let's move forward.",
+            "Thanks for that. Moving on.",
+            "I appreciate that. Next question.",
+            "Alright, let's continue.",
+            "Thanks for sharing. Next question.",
+            "Good, let's proceed.",
+            "Thank you. Let's move on.",
+            "Got it. Next question.",
+            "Appreciate your answer. Moving on.",
+            "Okay, let's go to the next question.",
+            "Thanks for your input. Next question.",
+            "Understood. Moving forward.",
+            "Alright, let's proceed.",
+            "Thank you for that. Next question.",
+            "Great, let's continue.",
+            "Thanks for sharing. Moving on.",
+            "Good to know. Next question.",
+            "Thank you. Let's proceed.",
+            "Got it. Moving on.",
+            "Appreciate your response. Next question.",
+            "Okay, let's continue.",
+            "Thanks for that. Next question.",
+            "Understood. Let's move on.",
+            "Alright, let's go to the next question.",
+            "Thank you for your answer. Moving on.",
+            "Great, let's proceed.",
+            "Thanks for sharing. Next question.",
+            "Good, let's continue.",
+            "Thank you. Moving on.",
+            "Got it. Next question.",
+            "Appreciate your input. Let's proceed.",
+            "Okay, let's move forward.",
+            "Thanks for your response. Next question.",
+            "Understood. Moving on.",
+            "Alright, let's continue.",
+            "Thanks for that. Here's another question.",
+            "I appreciate your insight. Let's move on.",
+            "Thank you for sharing. Next question.",
+            "That's helpful. Let's proceed.",
+            "Thanks for that. Moving forward.",
+            "I see. Let's continue.",
+            "Good answer. Next question.",
+            "Thank you for your thoughts. Let's move on.",
+            "Alright, let's go ahead.",
+            "Thanks for your input. Moving on.",
+            "Understood. Let's continue.",
+            "Okay, let's proceed.",
+            "Thanks for sharing. Let's move forward.",
+            "I appreciate your response. Next question.",
+            "Great, let's go to the next question.",
+            "Thank you for that. Moving on.",
+            "Good, let's continue.",
+            "Thanks for your answer. Next question.",
+            "Alright, let's move forward.",
+            "Thank you for your input. Let's proceed.",
+            "Got it. Let's continue.",
+            "Thanks for sharing. Moving forward.",
+            "I see. Next question.",
+            "Appreciate your response. Let's move on.",
+            "Okay, let's go ahead.",
+            "Thanks for that. Next question.",
+            "Understood. Let's move forward.",
+            "Alright, let's continue.",
+            "Thank you for your answer. Next question.",
+            "Great, let's proceed.",
+            "Thanks for sharing. Moving on.",
+            "Good to know. Next question.",
+            "Thank you. Let's continue.",
+            "Got it. Moving on.",
+            "Appreciate your input. Next question.",
+            "Okay, let's proceed.",
+            "Thanks for that. Next question.",
+            "Understood. Let's move on.",
+            "Alright, let's go to the next question.",
+            "Thank you for your answer. Moving on.",
+            "Great, let's continue.",
+            "Thanks for sharing. Next question.",
+            "Good, let's proceed.",
+            "Thank you. Moving on.",
+            "Got it. Next question.",
+            "Appreciate your input. Let's proceed.",
+            "Okay, let's move forward.",
+            "Thanks for your response. Next question.",
+            "Understood. Moving on."
+        ]
         
         # Initially False, becomes true once all questions and ideal answers are generated
         self.initialized = False
@@ -57,18 +162,33 @@ class FalconChatbot:
 
     def get_llm_answers(self, questions):
         prompt = f"""
-            This is the list of question: {questions}
-            You must generate the ideal response to each of these question, in order.
+            This is the list of questions: {questions}
+            You must generate the ideal response to each of these questions, in order.
+            Expect each response to take at least one minute to be spoken.
             Return them as a list of strings (["response1", "response2", ...]) such that I can parse it in Python
             """
         
         return self.get_response(prompt)
     
     def analyze_answers(self):
-        pass
+        for question, ideal_answer, answer in zip(self.questions, self.answers_from_llm, self.answers_from_user):
+            prompt = f"""
+            This is the question: {question}.
+            This its ideal answer: {ideal_answer}.
+            This is the answer provided by the candidate: {answer}. 
+
+            Compare the candidate's answer to the question and ideal answer in terms of relevance and quality. 
+            Then, you will return two things as a tuple: 1. A score from 1 to 10 as in integer. 2. A comment on the candidate's answer, Include the PROS and CONS of their answer as a string.
+
+            Return them as a tuple (score, "comment") such that I can parse it in Python.
+            """
+            self.results.append(self.get_response(prompt))
 
     def insert_user_answer(self, answer_as_text):
         self.answers_from_user.append(answer_as_text)
+
+    def get_filler(self):
+        return random.choice(self.fillers)
 
     def get_messages(self):
         return self.messages
@@ -157,6 +277,6 @@ Competitive salary and benefits package.
 Opportunities for career advancement and professional development.
 Collaborative and dynamic work environment.""")
 
-chatbot.get_questions()
+# chatbot.get_questions()
 
-print(chatbot.questions)
+# print(chatbot.questions)

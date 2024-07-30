@@ -3,7 +3,7 @@ from faster_whisper import WhisperModel
 
 def say(message):
     engine = pyttsx3.init()
-    engine.setProperty('rate', 160) # 150 wpm average for an interview
+    engine.setProperty('rate', 160) # 160 wpm average for an interview
     engine.setProperty('volume', 1.0) # between 0.0 and 1.0
     voices = engine.getProperty('voices')       # getting details of current voice
     #engine.setProperty('voice', voices[0].id)  # 0 for male
@@ -26,3 +26,6 @@ def transcribe(audio=None):
 
     for segment in segments:
         print("[%.2fs -> %.2fs] %s" % (segment.start, segment.end, segment.text))
+
+
+say("I am an AI that is going to be interviewing you today. I will be asking you a series of questions based on your CV and the job description. Please answer the questions to the best of your ability. Let's begin.")

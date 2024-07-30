@@ -24,5 +24,10 @@ def history():
 
     return render_template("history.html", interviews=interviews)
 
+
+@app.route("/turview")
+def turview():
+    return render_template("turview.html")
+
 if __name__ == "__main__":
     app.run()
