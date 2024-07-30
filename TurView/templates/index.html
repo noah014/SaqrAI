@@ -6,14 +6,14 @@
 
 {% block body %}
     <div>
-        <a href="history.html">TurView History</a>
+        <a href="/history" class="right_justified">TurView History</a>
     </div>
     <div>
         <img src="../static/TurView-logo.png" alt="logo" class="index_logo">
     </div>
     <div>
-        <form action="/turview" method="post">
-            <input type="submit" value="Start Interview" name="start" id="button">
+        <form action="/turview">
+            <input type="submit" value="Start Interview" name="start" class="btn btn-secondary btn-primary" id="button">
         </form>
     </div> 
 {% endblock %}
