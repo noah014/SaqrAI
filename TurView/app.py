@@ -1,5 +1,6 @@
 from flask import Flask, flash, redirect, render_template, request
 import sqlite3
+import os
 
 
 '''
@@ -27,7 +28,16 @@ def history():
 
 @app.route("/turview")
 def turview():
-    return render_template("turview.html")
+    if request.method == "POST":
+        file = request.files['file']
+        if file:
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file.save(filepath)
+        
+
+    elif request.method == "GET":
+        return render_template("turview.html")
+
 
 if __name__ == "__main__":
     app.run()
