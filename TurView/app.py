@@ -34,9 +34,13 @@ def register():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
             file.save(filepath)
         
-
+        return redirect("/turview")
     elif request.method == "GET":
         return render_template("register.html")
+    
+@app.route("/turview")
+def turview():
+    return render_template("turview.html")
 
 
 if __name__ == "__main__":

@@ -137,7 +137,7 @@ class FalconChatbot:
         ):
             delta_content = chunk.choices[0].delta.content
             if delta_content:
-                print(delta_content, sep="", end="", flush=True)
+                # print(delta_content, sep="", end="", flush=True)
                 response += delta_content
         self.messages.append({"role": "assistant", "content": response})
         

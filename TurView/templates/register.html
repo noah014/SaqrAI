@@ -1,7 +1,7 @@
 {% extends 'layout.html' %}
 
 {% block title %}
-    TurView
+    TurView: Register
 {% endblock %}
 
 {% block body %}
@@ -41,7 +41,7 @@
         <div class="row">
             <div class="col-md-6 left-half">
                 <a href="/"><img src="../static/TurView-logo.png" alt="logo" class="float-start history_logo"></a>
-                <form action="/turview" method="post">
+                <form action="/register" method="post">
                     <div class="input-group mb-3 input">
                         <label class="input-group-text" for="inputGroupFile01">Please Upload your CV</label>
                         <input type="file" class="form-control" id="inputGroupFile01">
@@ -61,17 +61,17 @@
                 </form>
             </div>
             <div class="col-md-6 right-half">
-                <div class="mb-3 hidden" id="textareaDiv">
-                    <label for="textarea" class="form-label">Additional Information:</label>
-                    <textarea class="form-control" id="textarea" rows="3"></textarea>
-                </div>
-    
-                <div class="mb-3" id="paragraphs">
-                    <p id="paragraph1" class="hidden">This is the paragraph for option one.</p>
-                    <p id="paragraph2" class="hidden">This is the paragraph for option two.</p>
-                    <p id="paragraph3" class="hidden">This is the paragraph for option three.</p>
-                    <p id="paragraph4" class="hidden">This is the paragraph for option four.</p>
-                </div>
+                <div class="centered">
+                    <div class="mb-3 hidden" id="textareaDiv">
+                        <label for="textarea" class="form-label">Please Specify:</label>
+                        <textarea class="form-control" id="textarea" rows="5"></textarea>
+                    </div>
+                    <div class="mb-3" id="paragraphs">
+                        <p id="paragraph1" class="hidden">This is the paragraph for option one.</p>
+                        <p id="paragraph2" class="hidden">This is the paragraph for option two.</p>
+                        <p id="paragraph3" class="hidden">This is the paragraph for option three.</p>
+                        <p id="paragraph4" class="hidden">This is the paragraph for option four.</p>
+                    </div>
             </div>
         </div>
     </div>

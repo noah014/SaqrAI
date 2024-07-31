@@ -70,3 +70,16 @@ background-color: #FFFFFF;/*#Fdfce8*/
 {
     margin-top: 200px;
 }
+.centered {
+    display: flex;
+    align-items: center; /* Vertically center */
+    justify-content: center; /* Horizontally center */
+    height: 100%; /* Use full height of the container */
+}
+
+#textarea
+{
+    width: 100%; /* Make it full width of the parent */
+    height: 150px; /* Set the height as needed */
+    max-width: 100%; /* Ensures it doesn't exceed the parent width */
+}
