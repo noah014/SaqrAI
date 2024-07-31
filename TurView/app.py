@@ -26,8 +26,8 @@ def history():
     return render_template("history.html", interviews=interviews)
 
 
-@app.route("/turview")
-def turview():
+@app.route("/register")
+def register():
     if request.method == "POST":
         file = request.files['file']
         if file:
@@ -36,7 +36,7 @@ def turview():
         
 
     elif request.method == "GET":
-        return render_template("turview.html")
+        return render_template("register.html")
 
 
 if __name__ == "__main__":
