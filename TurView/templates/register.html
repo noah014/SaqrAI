@@ -1,0 +1,78 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+    TurView: Register
+{% endblock %}
+
+{% block body %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectElement = document.getElementById('inputGroupSelect01');
+            const textareaDiv = document.getElementById('textareaDiv');
+            const paragraphs = {
+                '1': document.getElementById('paragraph1'),
+                '2': document.getElementById('paragraph2'),
+                '3': document.getElementById('paragraph3'),
+                '4': document.getElementById('paragraph4')
+            };
+
+            selectElement.addEventListener('change', function() {
+                const selectedValue = this.value;
+
+                // Hide all paragraphs initially
+                Object.values(paragraphs).forEach(paragraph => {
+                    paragraph.classList.add('hidden');
+                });
+
+                // Hide the textarea initially
+                textareaDiv.classList.add('hidden');
+
+                if (selectedValue === '5') {
+                    // Show the textarea if option 5 is selected
+                    textareaDiv.classList.remove('hidden');
+                } else if (selectedValue in paragraphs) {
+                    // Show the paragraph corresponding to the selected option
+                    paragraphs[selectedValue].classList.remove('hidden');
+                }
+            });
+        });
+    </script>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-6 left-half">
+                <a href="/"><img src="../static/TurView-logo.png" alt="logo" class="float-start history_logo"></a>
+                <form action="/register" method="post">
+                    <div class="input-group mb-3 input">
+                        <label class="input-group-text" for="inputGroupFile01">Please Upload your CV</label>
+                        <input type="file" class="form-control" id="inputGroupFile01">
+                    </div>
+                    <div class="input-group mb-3 input">
+                        <label class="input-group-text" for="inputGroupSelect01">Choose a Job Description</label>
+                        <select class="form-select" id="inputGroupSelect01">
+                        <option selected>Choose...</option>
+                        <option value="1">Graphic Designer Job Description</option>
+                        <option value="2">Software Engineer (ML Backend) Job Description</option>
+                        <option value="3">Business Stratigist Job Description</option>
+                        <option value="4">Consultant Pediatrician Job Description</option>
+                        <option value="5">Other</option>
+                        </select>
+                    </div>
+                    <input class="btn btn-primary col text-end" type="submit" value="Submit" id="submit">
+                </form>
+            </div>
+            <div class="col-md-6 right-half">
+                <div class="centered">
+                    <div class="mb-3 hidden" id="textareaDiv">
+                        <label for="textarea" class="form-label">Please Specify:</label>
+                        <textarea class="form-control" id="textarea" rows="5"></textarea>
+                    </div>
+                    <div class="mb-3" id="paragraphs">
+                        <p id="paragraph1" class="hidden">This is the paragraph for option one.</p>
+                        <p id="paragraph2" class="hidden">This is the paragraph for option two.</p>
+                        <p id="paragraph3" class="hidden">This is the paragraph for option three.</p>
+                        <p id="paragraph4" class="hidden">This is the paragraph for option four.</p>
+                    </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

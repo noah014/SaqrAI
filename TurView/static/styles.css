@@ -34,8 +34,8 @@ background-color: #FFFFFF;/*#Fdfce8*/
 
 .history_logo
 {
-    width: 150px;
-    margin-bottom: 50px;
+    width: 220px;
+    margin-bottom: 0;
 }
 
 #button 
@@ -47,5 +47,39 @@ background-color: #FFFFFF;/*#Fdfce8*/
     margin-right: auto;
 }
 
+.left-half
+{
+    background-color: #e9ecef;
+    padding: 20px;
+    height: 100vh;
+    text-align: center;
+}
 
-  
+.hidden {
+    display: none;
+}
+
+.input
+{
+    padding-top: 40px;
+    margin-right: 30px;
+    padding-bottom: 50px;
+}
+
+#submit
+{
+    margin-top: 200px;
+}
+.centered {
+    display: flex;
+    align-items: center; /* Vertically center */
+    justify-content: center; /* Horizontally center */
+    height: 100%; /* Use full height of the container */
+}
+
+#textarea
+{
+    width: 100%; /* Make it full width of the parent */
+    height: 150px; /* Set the height as needed */
+    max-width: 100%; /* Ensures it doesn't exceed the parent width */
+}

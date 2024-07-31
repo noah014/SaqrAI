@@ -4,3 +4,5 @@ flask
 faster-whisper
 docxtpl
 docx2pdf
+docx2txt
+PyPDF2
