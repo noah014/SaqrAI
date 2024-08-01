@@ -44,7 +44,7 @@
                 <form action="/register" method="post">
                     <div class="input-group mb-3 input">
                         <label class="input-group-text" for="inputGroupFile01">Please Upload your CV</label>
-                        <input type="file" class="form-control" id="inputGroupFile01">
+                        <input type="file" class="form-control" id="inputGroupFile01" name="cv">
                     </div>
                     <div class="input-group mb-3 input">
                         <label class="input-group-text" for="inputGroupSelect01">Choose a Job Description</label>
@@ -61,7 +61,7 @@
                 </form>
             </div>
             <div class="col-md-6 right-half">
-                <div class="centered">
+                <div>
                     <div class="mb-3 hidden" id="textareaDiv">
                         <label for="textarea" class="form-label">Please Specify:</label>
                         <textarea class="form-control" id="textarea" rows="5"></textarea>
@@ -72,7 +72,7 @@
                         <p id="paragraph3" class="hidden">This is the paragraph for option three.</p>
                         <p id="paragraph4" class="hidden">This is the paragraph for option four.</p>
                     </div>
+                </div>
             </div>
-        </div>
     </div>
 {% endblock %}

@@ -26,17 +26,17 @@ def history():
     return render_template("history.html", interviews=interviews)
 
 
-@app.route("/register")
+@app.route("/register", methods=['GET', 'POST'])
 def register():
     if request.method == "POST":
-        file = request.files['file']
-        if file:
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-            file.save(filepath)
+        ...
+
         
-        return redirect("/turview")
     elif request.method == "GET":
         return render_template("register.html")
+    
+    return redirect("/turview")
+
     
 @app.route("/turview")
 def turview():
