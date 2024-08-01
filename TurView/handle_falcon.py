@@ -1,12 +1,14 @@
 from ai71 import AI71
 import ast
 import random
+import turview_report as tr
 
 AI71_API_KEY = "api71-api-cbdf95af-ec38-4f97-8d7e-cb2ec3823f46"
 
 class FalconChatbot:
-    def __init__(self, cv_text, job_desc_text):
+    def __init__(self, cv_text, job_desc_text, name=None):
         self.client = AI71(AI71_API_KEY)
+        self.name = name
         self.messages = [{"role": "system", "content": """You are an interview chatbot, called TurViewBot. 
                           You will be passed a CV and a job description, and you will generate 5 interview questions based on them.
                           3 questions should be behavioral, and 2 questions should be technical.
@@ -192,6 +194,11 @@ class FalconChatbot:
 
     def get_messages(self):
         return self.messages
+
+    def get_report(self):
+        turview_report = tr.TurViewReport(name=self.name, job_desc=self.job_desc, questions=self.questions, ideal_answers=self.answers_from_llm, client_answers=self.answers_from_user, results=self.results)
+
+        return turview_report
 
 chatbot = FalconChatbot(cv_text="""SULTAN WALEED ALHOSANI
 alhosani909@gmail.com | +971 56 757 7346 | Abu Dhabi, UAE
