@@ -293,6 +293,6 @@ def extract_text(file_path) -> str:
     
     raise FileNotFoundError(f"Couldn't Find the File. {file_path}")
 
-
-resume = cv_formatter(extract_text(r"TurView/Docxtpl Templates/Formatted CVs/Ahmed Almaeeni CV - Civil & Transportation Engineer --.pdf"))
-resume.write_document()
+if __name__ == "__main__":
+    resume = cv_formatter(extract_text(r"TurView/Docxtpl Templates/Formatted CVs/Ahmed Almaeeni CV - Civil & Transportation Engineer --.pdf"))
+    resume.write_document()

@@ -62,5 +62,5 @@ class Answers:
         self.a4 = answers[3] if answers[3] else None
         self.a5 = answers[4] if answers[4] else None
 
-temp_report = TurViewReport(name="Aditya", job_desc="Software Engineer", questions=["What is your name?", "What is your age?", "What is your name?", "What is your age?", "What is your name?"], ideal_answers=["Aditya", "22", "Aditya", "22", "Aditya"], client_answers=["Aditya", "22", "Aditya", "22", "Aditya"], results=[(5, "Correct"), (6, "Correct"), (5.5, "Correct"), (9, "Correct"), (10, "Correct")])
-temp_report.write_document(r"TurView\Docxtpl Templates\TurView Interview Report.docx", r"TurView\Docxtpl Templates\Aditya_report.docx")
+# temp_report = TurViewReport(name="Aditya", job_desc="Software Engineer", questions=["What is your name?", "What is your age?", "What is your name?", "What is your age?", "What is your name?"], ideal_answers=["Aditya", "22", "Aditya", "22", "Aditya"], client_answers=["Aditya", "22", "Aditya", "22", "Aditya"], results=[(5, "Correct"), (6, "Correct"), (5.5, "Correct"), (9, "Correct"), (10, "Correct")])
+# temp_report.write_document(r"SaqrAI\TurView\Docxtpl Templates\TurView Interview Report.docx", r"SaqrAI\TurView\Docxtpl Templates\Aditya_report.docx")

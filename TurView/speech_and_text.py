@@ -28,4 +28,3 @@ def transcribe(audio=None):
         print("[%.2fs -> %.2fs] %s" % (segment.start, segment.end, segment.text))
 
 
-say("I am an AI that is going to be interviewing you today. I will be asking you a series of questions based on your CV and the job description. Please answer the questions to the best of your ability. Let's begin.")

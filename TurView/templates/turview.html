@@ -5,6 +5,45 @@
 {% endblock %}
 
 {% block body %}
-    <div><img src="..\static\TurView logo.png" alt="logo" class="history_logo"></div>
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        const recordButton = document.getElementById('recordButton');
+        const audioElement = document.getElementById('audio');
+        const transcriptDiv = document.getElementById('transcript');
 
+        recordButton.addEventListener('click', async () => {
+            if (recordButton.textContent === 'Record') {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const formData = new FormData();
+                    formData.append('file', audioBlob, 'recording.wav');
+                    const response = await fetch('/upload', { method: 'POST', body: formData });
+                    const data = await response.json();
+                    transcriptDiv.textContent = data.transcript || 'Error transcribing audio.';
+                };
+                mediaRecorder.start();
+                recordButton.textContent = 'Stop';
+            } else {
+                mediaRecorder.stop();
+                recordButton.textContent = 'Record';
+            }
+        });
+    </script>
+    <a href="/"><img src="../static/TurView-logo.png" alt="logo" class="float-start history_logo"></a>
+    <div>
+        <!-- display bot here -->
+         {% for img in imgs %}
+            <img src='{{ img }}' alt="bot" class="hidden">
+        {% endblock %}
+    </div>
+    <div>
+        <h6>Current Question</h6>
+        <div id="question">{{ question }}</div>
+        <button id="recordButton">Record Answer</button>
+        <div id="transcription"></div>
+    </div>
 {% endblock %}

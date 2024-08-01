@@ -42,13 +42,17 @@
             <div class="col-md-6 left-half">
                 <a href="/"><img src="../static/TurView-logo.png" alt="logo" class="float-start history_logo"></a>
                 <form action="/register" method="post">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text" id="inputGroup-sizing-default">Name</span>
+                        <input type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default" name="name">
+                      </div>
                     <div class="input-group mb-3 input">
                         <label class="input-group-text" for="inputGroupFile01">Please Upload your CV</label>
                         <input type="file" class="form-control" id="inputGroupFile01" name="cv">
                     </div>
                     <div class="input-group mb-3 input">
                         <label class="input-group-text" for="inputGroupSelect01">Choose a Job Description</label>
-                        <select class="form-select" id="inputGroupSelect01">
+                        <select class="form-select" id="inputGroupSelect01" name="job_desc">
                         <option selected>Choose...</option>
                         <option value="1">Graphic Designer Job Description</option>
                         <option value="2">Software Engineer (ML Backend) Job Description</option>
@@ -57,14 +61,14 @@
                         <option value="5">Other</option>
                         </select>
                     </div>
-                    <input class="btn btn-primary col text-end" type="submit" value="Submit" id="submit">
+                    <input class="btn btn-primary col text-end" type="submit" value="Register" id="submit">
                 </form>
             </div>
             <div class="col-md-6 right-half">
                 <div>
-                    <div class="mb-3 hidden" id="textareaDiv">
-                        <label for="textarea" class="form-label">Please Specify:</label>
-                        <textarea class="form-control" id="textarea" rows="5"></textarea>
+                    <div class="mb-3 hidden" id="textareaDiv" style="margin-top: 260px;">
+                        <label for="textarea" class="form-label">Please Enter your Desired Job Description:</label>
+                        <textarea class="form-control" id="textarea" rows="5" name="job_desc_input"></textarea>
                     </div>
                     <div class="mb-3" id="paragraphs">
                         <p id="paragraph1" class="hidden">This is the paragraph for option one.</p>
