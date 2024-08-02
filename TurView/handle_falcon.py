@@ -154,9 +154,7 @@ class FalconChatbot:
             This is the CV: {self.cv}
             This is the Job Description: {self.job_desc}
 
-            You will fill in XXX based on some relevant keywords related to the job description and YYY based on some relevant keywords related to the CV.
-
-            Return just a string greeting message for the candidate of the form: "Hello and Welcome to the Ter View! I am Ter View Bot, your interview assistant. I will be asking you a few questions today about your job application for XXX (fill in based on Job Description) based on your profile in the field of YYY (based on CV). Let's get started!"
+            Give me a string greeting message for the candidate, introduce yourself as the Ter View Bot and say you will interview them about the position in the job description."
         """
 
         return self.get_response(prompt)

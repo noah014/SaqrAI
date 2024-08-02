@@ -12,14 +12,15 @@ import handle_falcon as hf
 import turview_upgraded_cv as cv
 import util
 
+import time
+import random
+
 '''
 database schema
 
 table users: id, interview date and time, interviwee name 
 table interviews: interview id, user_id, interview cv (link), job description, interview report(link)
 '''
-
-
 
 app = Flask(__name__)
 
@@ -30,9 +31,13 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Session key
 app.secret_key = 'f379f632024d5d4b6f09e4f2e30c3cd87ec392e67f07958be0b5c4284b803051'
 
-audio_queue = queue.Queue()
+global audio_thread, audio_queue, chatbot_thread, turview_bot, user_id
 
-global user_id
+audio_queue = queue.Queue()
+turview_bot = None
+audio_thread = None
+chatbot_thread = None
+
 
 @app.route("/")
 def index():
@@ -85,7 +90,6 @@ def register():
         db.execute("SELECT id FROM users WHERE name = ? AND cv = ? and job_description = ?", (name, filepath, job_desc))
         user_id = int(db.fetchone()[0])
 
-
         db.close()
 
     elif request.method == "GET":
@@ -93,8 +97,12 @@ def register():
     
     return redirect("/turview")
 
+
 @app.route("/turview", methods=['GET', 'POST'])
 def turview():
+    global chatbot_thread
+    global audio_thread
+
     if request.method == "POST":
         if 'audio_data' not in request.files:
             return 'No file part'
@@ -121,13 +129,12 @@ def turview():
         
         return render_template("turview.html")
 
-turview_bot = None
-audio_queue = queue.Queue()
 
 def initialize_turview_bot(name, cv, job_description):
     global turview_bot
     st.say("Welcome to Ter View! Your Ter Viewer will be with you shortly!")
     turview_bot = hf.FalconChatbot(name = name, cv_text = cv, job_desc_text = job_description)
+
 
 def handle_transcription():
     print("Transcription Started")
@@ -136,7 +143,7 @@ def handle_transcription():
         turview_bot.answers_from_user.append = st.transcribe(audio_queue.get())
 
 
-@app.route("/handel_conversation")
+@app.route("/handle_conversation")
 def handle_conversation():
     global turview_bot
     global user_id
@@ -150,15 +157,23 @@ def handle_conversation():
 
     user_cv = cv.extract_text(user_info[1])
 
+    update_state(image_num=4, text="Your TurViewer is Preparing to Interview You, Please Wait!")
     initialize_turview_bot(name = user_info[0], cv = user_cv, job_description = user_info[2])
+    
+    update_state(image_num=3, text="Welcome to the TurView!")
+    st.say(turview_bot.greetings)
+    update_state(image_num=0, text="Welcome to the TurView!")
+    time.sleep(random(2.5, 5)) # Natural Pause
 
     for question in range(len(turview_bot.questions)):
-        # say question
-        # speakinmg face
+        update_state(image_num=2, text=turview_bot.questions[question])
+        time.sleep(random(2.5, 5)) # Natural Pause
         st.say(turview_bot.questions[question])
         update_state(image_num=1, text=turview_bot.questions[question])
+
         # when record pressed
         # listening face
+        update_state(image_num=1, text=turview_bot.questions[question])
         if 'file' not in request.files:
             return 'No file part'
         
@@ -170,15 +185,23 @@ def handle_conversation():
             filepath = os.path.join(UPLOAD_FOLDER, f'recording_{question}.wav')
             file.save(filepath)
             audio_queue.put()  # Pass the file path to the transcription thread
-        # when recording done --> greeting face
-        
-        # set speaking2 image --> JS
-        # capture audio and post to processing thread
-        # wait for audio to come in.
-        # put audio in queue
 
-        st.say(turview_bot.get_filler())
-    print("Conversation started")
+        # time.sleep(random(2.5, 5)) # Natural Pause
+
+        filler = turview_bot.get_filler()
+        update_state(image_num=3, text=filler)
+        st.say(filler)
+        update_state(image_num=1, text=f"Next Question, Question {question + 1}")
+        time.sleep(random(2.5, 5)) # Natural Pause
+    
+    st.say("Thank you for your time and we hope you enjoyed your experience with Ter View! Now you may view your Ter View Report!")
+
+    # provide report
+
+    # Kill All Threads
+    audio_thread.join()
+    chatbot_thread.join()
+
 
 @app.route("/update_state", methods=["POST"])
 def update_state(image_num: int, text: str):
