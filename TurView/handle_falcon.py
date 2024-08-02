@@ -6,22 +6,24 @@ import turview_report as tr
 AI71_API_KEY = "api71-api-cbdf95af-ec38-4f97-8d7e-cb2ec3823f46"
 
 class FalconChatbot:
-    def __init__(self, cv_text, job_desc_text, name=None):
+    def __init__(self, cv_text, job_desc_text, name=None, TurView: bool = True):
+        print(f"Initializing FalconChatbot with TurView={TurView}")
+
         self.client = AI71(AI71_API_KEY)
         self.name = name
         self.messages = [{"role": "system", "content": """You are an interview chatbot, called TurViewBot. 
                           You will be passed a CV and a job description, and you will generate 5 interview questions based on them.
                           3 questions should be behavioral, and 2 questions should be technical.
-                          At the end, you will be analyzing the answers to the questions and providing a report."""}]
+                          At the end, you will be analyzing the answers to the questions and providing a report."""}] if TurView else []
         self.model = "tiiuae/falcon-180B-chat" # tiiuae/falcon-40b-instruct, tiiuae/falcon-40b, tiiuae/falcon-7b-instruct, tiiuae/falcon-7b
         self.cv = cv_text
         self.job_desc = job_desc_text
         self.streaming = True
-        self.questions = self.get_questions()
+        self.questions = self.get_questions() if TurView else None
         self.answers_from_user = []
         self.answers_from_llm = []
         self.results = []
-        self.greetings = self.get_greetings()
+        self.greetings = self.get_greetings() if  TurView else None
 
         # Fillers in Between Each Question --> 98 Fillers
         self.fillers = [ 
@@ -129,7 +131,7 @@ class FalconChatbot:
         # Initially False, becomes true once all questions and ideal answers are generated
         self.initialized = False
 
-    def get_response(self, prompt):
+    def get_response(self, prompt, temperature=0):
         self.messages.append({"role": "user", "content": prompt}) 
           
         response = ""
@@ -137,6 +139,7 @@ class FalconChatbot:
             messages=self.messages,
             model=self.model,
             stream=self.streaming,
+            temperature=temperature
         ):
             delta_content = chunk.choices[0].delta.content
             if delta_content:
@@ -150,6 +153,8 @@ class FalconChatbot:
         prompt = f"""
             This is the CV: {self.cv}
             This is the Job Description: {self.job_desc}
+
+            You will fill in XXX based on some relevant keywords related to the job description and YYY based on some relevant keywords related to the CV.
 
             Return just a string greeting message for the candidate of the form: "Hello and Welcome to the Ter View! I am Ter View Bot, your interview assistant. I will be asking you a few questions today about your job application for XXX (fill in based on Job Description) based on your profile in the field of YYY (based on CV). Let's get started!"
         """
@@ -210,8 +215,6 @@ class FalconChatbot:
         turview_report = tr.TurViewReport(name=self.name, job_desc=self.job_desc, questions=self.questions, ideal_answers=self.answers_from_llm, client_answers=self.answers_from_user, results=self.results)
 
         return turview_report
-    
-
     
 if __name__ == "__main__":
     chatbot = FalconChatbot(cv_text="""SULTAN WALEED ALHOSANI
