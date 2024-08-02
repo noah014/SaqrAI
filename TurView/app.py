@@ -151,7 +151,6 @@ def handle_conversation():
     conn = sqlite3.connect("turview.db")
     db = conn.cursor()
     
-    print(f"User ID: {user_id}")
     db.execute("SELECT name, cv, job_description FROM users WHERE id = ?", (user_id,))
     user_info = db.fetchone()
 

@@ -73,6 +73,7 @@ background-color: #FFFFFF;/*#Fdfce8*/
 {
     margin-top: 200px;
 }
+
 .centered {
     display: flex;
     align-items: center; /* Vertically center */
@@ -86,3 +87,33 @@ background-color: #FFFFFF;/*#Fdfce8*/
     height: 150px; /* Set the height as needed */
     max-width: 100%; /* Ensures it doesn't exceed the parent width */
 }
+
+.icon-button {
+    background: none; /* Remove background */
+    border: none; /* Remove border */
+    padding: 0; /* Remove padding */
+    cursor: pointer; /* Change cursor to pointer */
+    display: inline-flex; /* Align icon */
+    align-items: center; /* Center icon vertically */
+    justify-content: center; /* Center icon horizontally */
+  }
+  
+  .icon-button svg {
+    fill: currentColor; /* Inherit text color */
+  }
+  
+  .icon-button:hover svg {
+    fill: red; /* Change color on hover */
+  }
+
+  .container
+  {
+    display: flex;
+    justify-content: center; /* Center horizontally within the container */
+  }
+
+  .bot-container {
+    display: flex;
+    justify-content: center; /* Center horizontally within the container */
+    align-items: center; /* Center vertically within the container */
+  }
