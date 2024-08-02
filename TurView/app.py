@@ -163,11 +163,11 @@ def handle_conversation():
     update_state(image_num=3, text="Welcome to the TurView!")
     st.say(turview_bot.greetings)
     update_state(image_num=0, text="Welcome to the TurView!")
-    time.sleep(random(2.5, 5)) # Natural Pause
+    time.sleep(random.uniform(2.5, 5)) # Natural Pause
 
     for question in range(len(turview_bot.questions)):
         update_state(image_num=2, text=turview_bot.questions[question])
-        time.sleep(random(2.5, 5)) # Natural Pause
+        time.sleep(random.uniform(2.5, 5)) # Natural Pause
         st.say(turview_bot.questions[question])
         update_state(image_num=1, text=turview_bot.questions[question])
 
@@ -192,7 +192,7 @@ def handle_conversation():
         update_state(image_num=3, text=filler)
         st.say(filler)
         update_state(image_num=1, text=f"Next Question, Question {question + 1}")
-        time.sleep(random(2.5, 5)) # Natural Pause
+        time.sleep(random.uniform(2.5, 5)) # Natural Pause
     
     st.say("Thank you for your time and we hope you enjoyed your experience with Ter View! Now you may view your Ter View Report!")
 
