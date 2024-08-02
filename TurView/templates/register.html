@@ -41,14 +41,14 @@
         <div class="row">
             <div class="col-md-6 left-half">
                 <a href="/"><img src="../static/TurView-logo.png" alt="logo" class="float-start history_logo"></a>
-                <form action="/register" method="post">
+                <form action="/register" method="post" enctype="multipart/form-data">
                     <div class="input-group mb-3">
                         <span class="input-group-text" id="inputGroup-sizing-default">Name</span>
-                        <input type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default" name="name">
+                        <input type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default" name="name" autofocus>
                       </div>
                     <div class="input-group mb-3 input">
                         <label class="input-group-text" for="inputGroupFile01">Please Upload your CV</label>
-                        <input type="file" class="form-control" id="inputGroupFile01" name="cv">
+                        <input type="file" class="form-control" id="inputGroupFile01" name="file">
                     </div>
                     <div class="input-group mb-3 input">
                         <label class="input-group-text" for="inputGroupSelect01">Choose a Job Description</label>

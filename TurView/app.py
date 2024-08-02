@@ -2,6 +2,9 @@ from flask import Flask, flash, redirect, render_template, request, session
 import sqlite3
 import os
 from datetime import datetime
+import threading
+import queue
+from concurrent.futures import ThreadPoolExecutor
 
 import speech_and_text as st
 import handle_falcon as hf
@@ -16,18 +19,20 @@ table users: id, interview date and time, interviwee name
 table interviews: interview id, user_id, interview cv (link), job description, interview report(link)
 '''
 
-conn = sqlite3.connect("turview.db")
-db = conn.cursor()
+
 
 app = Flask(__name__)
 
 # App configuration to accept file uploads
-UPLOAD_FOLDER = r"TurView\uploads"
+UPLOAD_FOLDER = r"..\TurView\uploads"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Session key
 app.secret_key = 'f379f632024d5d4b6f09e4f2e30c3cd87ec392e67f07958be0b5c4284b803051'
 
+audio_queue = queue.Queue()
+
+global user_id
 
 @app.route("/")
 def index():
@@ -41,6 +46,9 @@ def history():
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():
+    conn = sqlite3.connect("turview.db")
+    db = conn.cursor()
+    global user_id
     if request.method == "POST":
         # Get the name
         name = request.form.get("name")
@@ -60,19 +68,25 @@ def register():
         file.save(filepath)
 
         # Get the job description
-        job_desc = request.form.get("job_desc")
-        if job_desc == 5 and request.form.get("job_desc_input"):
+        if request.form.get("job_desc"):
+            job_desc = request.form.get("job_desc")
+        
+        elif request.form.get("job_desc") == 5 and request.form.get("job_desc_input"):
             job_desc = request.form.get("job_desc_input")
+            
         else:
             return 'Please enter your job description' 
 
         # Save info to the database 
-        db.execute("INSERT INTO users (datetime, name, cv, job_description) VALUES (?, ?, ?, ?)", (datetime.today(), name, filepath, job_desc))
-        db.commit()
+        db.execute("INSERT INTO users (datetime, name, cv, job_description) VALUES (?, ?, ?, ?)", (datetime.today().strftime('%Y-%m-%d %H:%M:%S'), name, filepath, job_desc))
+        conn.commit()
         
         # log the user
-        id = db.execute("SELECT id FROM users WHERE name = ? AND cv = ? and job_description = ?", (name, filepath, job_desc))
-        session["id"] = id
+        db.execute("SELECT id FROM users WHERE name = ? AND cv = ? and job_description = ?", (name, filepath, job_desc))
+        user_id = int(db.fetchone()[0])
+
+
+        db.close()
 
     elif request.method == "GET":
         return render_template("register.html")
@@ -81,32 +95,118 @@ def register():
 
 @app.route("/turview", methods=['GET', 'POST'])
 def turview():
-
     if request.method == "POST":
-        # Query the Database for the user's information
-        user_info = db.execute("SELECT name, cv, job_description FROM users WHERE id = ?", session["id"])
-        user_cv = cv.extract_text(user_info[1])
+        if 'audio_data' not in request.files:
+            return 'No file part'
+    
+        file = request.files['audio_data']
         
-        # set loading gif image
-
-        # Initialize the chatbot
-        turview_bot = hf.FalconChatbot(name = user_info[0], cv = user_cv, job_description = user_info[2])
-
-        # set greeting image
-        st.say(turview_bot.greetings)
+        if file.filename == '':
+            return 'No selected file'
         
-        # START LOOP
-        for question in range(5): # 0=Q1, 1=Q2, 2=Q3, 3=Q4, 4=Q5
-            # set speaking1 image --> JS
+        # Save the file
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'audio.webm')
+        file.save(filepath)
 
+        process_audio(filepath)
+
+    elif request.method == "GET":
+        chatbot_thread = threading.Thread(target = handle_conversation)
+        chatbot_thread.daemon = False
+        chatbot_thread.start()
+        
+        audio_thread = threading.Thread(target = handle_transcription)
+        audio_thread.daemon = False
+        audio_thread.start()
+        
+        return render_template("turview.html")
+
+turview_bot = None
+audio_queue = queue.Queue()
+
+def initialize_turview_bot(name, cv, job_description):
+    global turview_bot
+    st.say("Welcome to Ter View! Your Ter Viewer will be with you shortly!")
+    turview_bot = hf.FalconChatbot(name = name, cv_text = cv, job_desc_text = job_description)
+
+def handle_transcription():
+    print("Transcription Started")
+    
+    while not audio_queue.empty:
+        turview_bot.answers_from_user.append = st.transcribe(audio_queue.get())
+
+
+@app.route("/handel_conversation")
+def handle_conversation():
+    global turview_bot
+    global user_id
+
+    conn = sqlite3.connect("turview.db")
+    db = conn.cursor()
+    
+    print(f"User ID: {user_id}")
+    db.execute("SELECT name, cv, job_description FROM users WHERE id = ?", (user_id,))
+    user_info = db.fetchone()
+
+    user_cv = cv.extract_text(user_info[1])
+
+    initialize_turview_bot(name = user_info[0], cv = user_cv, job_description = user_info[2])
+
+    for question in range(len(turview_bot.questions)):
+        # say question
+        # speakinmg face
+        st.say(turview_bot.questions[question])
+        update_state(image_num=1, text=turview_bot.questions[question])
+        # when record pressed
+        # listening face
+        if 'file' not in request.files:
+            return 'No file part'
+        
+        file = request.files['file']
+        if file.filename == '':
+            return {'error': 'No selected file'}
+        
+        if file:
+            filepath = os.path.join(UPLOAD_FOLDER, f'recording_{question}.wav')
+            file.save(filepath)
+            audio_queue.put()  # Pass the file path to the transcription thread
+        # when recording done --> greeting face
+        
+        # set speaking2 image --> JS
+        # capture audio and post to processing thread
+        # wait for audio to come in.
+        # put audio in queue
+
+        st.say(turview_bot.get_filler())
+    print("Conversation started")
+
+@app.route("/update_state", methods=["POST"])
+def update_state(image_num: int, text: str):
+    return {"image_num": image_num, "text": text}
+    
+
+def process_audio(filepath):
+    ...
+    
+if __name__ == "__main__":
+    app.run()
+
+
+'''    conn = sqlite3.connect("turview.db")
+    db = conn.cursor()
+
+
+    def handle_transcription(turview_bot, question, filepath):
+        turview_bot.answers_from_user[question] = st.transcribe(filepath)
+
+    def handle_conversation(turview_bot, audio_queue):
+        for question in range(len(turview_bot.questions)):
             # say question
+            # speakinmg face
             st.say(turview_bot.questions[question])
-            # set greeting/standby image --> JS
-
-            # user presses record --> JS
-            # set listening image --> JS
-            # python WAITS for js audio to come in
-            
+            # greeting face
+            # when record pressed
+            # listening face
             if 'file' not in request.files:
                 return 'No file part'
             
@@ -115,32 +215,46 @@ def turview():
                 return {'error': 'No selected file'}
             
             if file:
-                filepath = os.path.join(UPLOAD_FOLDER, 'recording.wav')
+                filepath = os.path.join(UPLOAD_FOLDER, f'recording_{question}.wav')
                 file.save(filepath)
-                turview_bot.answers_from_user[question] = st.transcribe(filepath)
-
+                audio_queue.put()  # Pass the file path to the transcription thread
+            # when recording done --> greeting face
+            
             # set speaking2 image --> JS
             # capture audio and post to processing thread
+            # wait for audio to come in.
+            # put audio in queue
+
             st.say(turview_bot.get_filler())
-        # END LOOP
+            
+    if request.method == "POST":
+        # Query the Database for the user's information
+        user_info = db.execute("SELECT name, cv, job_description FROM users WHERE id = ?", session["user_id"])
+        user_cv = cv.extract_text(user_info[1])
+
+        # Initialize the chatbot
+        turview_bot = hf.FalconChatbot(name = user_info[0], cv = user_cv, job_description = user_info[2])
+        st.say(turview_bot.greetings)
         
+        # here
 
-        # To use in a Thread for generating questions
+       # Start thread for conversation
+        conversation_thread = threading.Thread(target=handle_conversation, args=(turview_bot, audio_queue))
+        
+        # Start ThreadPoolExecutor for transcription
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            conversation_thread.start()
+            
+            while conversation_thread.is_alive() or not audio_queue.empty():
+                try:
+                    question, filepath = audio_queue.get(timeout=90)
+                    executor.submit(handle_transcription, turview_bot, question, filepath)
+                except queue.Empty:
+                    continue
+            
+            conversation_thread.join()
 
-            # join threads
-
-        # for each question:
-        # Thread to handle the conversation: questioning, listening --> q2 **for ex**
-
-        # Thread to handle conversation analysis: genereate ideal answers, compapre the user answer to the ideal answer  --> q1 **for ex**
-
-        # join threads
-        # 5 questions
-        for INDEX in range(5):
-            ...
-
-    elif request.method == "GET":
-        return render_template("turview.html")
-
-if __name__ == "__main__":
-    app.run()
+        # say goodbye
+        st.say("""Thank you for your time and we hope you enjoyed your experience with Ter View! 
+            Now you may view your Ter View Report!""")
+        # present user with report '''

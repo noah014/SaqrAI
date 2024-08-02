@@ -120,7 +120,7 @@ class Resume:
         doc.save(output_path)
         convert(output_path, output_path.replace(".docx", ".pdf"))
 
-def cv_formatter(cv_txt: str, translate_to_english=True) -> Resume:
+def cv_formatter(cv_txt: str) -> Resume:
     # 1. Initialize CV Writer Bot
     cv_writer = FalconChatbot(cv_text = cv_txt, job_desc_text = None, TurView = False)
 

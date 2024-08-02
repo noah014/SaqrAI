@@ -1,49 +1,66 @@
 {% extends 'layout.html' %}
 
-{% block tilte %}
+{% block title %}
     TurView
 {% endblock %}
 
 {% block body %}
     <script>
-        let mediaRecorder;
-        let audioChunks = [];
-        const recordButton = document.getElementById('recordButton');
-        const audioElement = document.getElementById('audio');
-        const transcriptDiv = document.getElementById('transcript');
-
-        recordButton.addEventListener('click', async () => {
-            if (recordButton.textContent === 'Record') {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
-                mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                    const formData = new FormData();
-                    formData.append('file', audioBlob, 'recording.wav');
-                    const response = await fetch('/upload', { method: 'POST', body: formData });
-                    const data = await response.json();
-                    transcriptDiv.textContent = data.transcript || 'Error transcribing audio.';
-                };
-                mediaRecorder.start();
-                recordButton.textContent = 'Stop';
+        document.getElementById('recordButton').addEventListener('click', function() {
+            if (this.textContent === 'Record') {
+                // Start recording logic
+                this.textContent = 'Stop';
             } else {
-                mediaRecorder.stop();
-                recordButton.textContent = 'Record';
+                // Stop recording logic
+                this.textContent = 'Record';
             }
         });
+
+        // Function to update the image and question dynamically
+        function updateInterviewState(imageNum, questionText) {
+            switch(imageNum) {
+                case 1:
+                    imageSrc = 'TurView/static/TurView_Bot_Listening.png';
+                    break;
+                case 2:
+                    imageSrc = 'TurView/static/TurView_Bot_Speaking1.png';
+                    break;
+                case 3:
+                    imageSrc = 'TurView/static/TurView_Bot_Speaking2.png';
+                    break;
+                default:
+                    imageSrc = 'TurView/static/TurView_Bot_Greeting.png';
+            }
+            
+            document.getElementById('dynamicImage').src = imageSrc;
+            document.getElementById('currentQuestion').textContent = questionText;
+        }
+
+        // Function to fetch updates from the server using AJAX framework
+        async function fetchUpdate() {
+            fetch('/update_state', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateInterviewState(data.image_num, data.question_text);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Add event listener to the update button
+        document.getElementById('updateButton').addEventListener('click', fetchUpdate);
     </script>
     <a href="/"><img src="../static/TurView-logo.png" alt="logo" class="float-start history_logo"></a>
-    <div>
-        <!-- display bot here -->
-         {% for img in imgs %}
-            <img src='{{ img }}' alt="bot" class="hidden">
-        {% endblock %}
+    <div class="center-frame">
+        <img id="dynamicImage" src="../static/TurView_Bot_Greeting.png" alt="bot" class="center-image">
+        <div class="banner">
+            <h6>Current Question: <span id="currentQuestion">{{ question }}</span></h6>
+        </div>
     </div>
     <div>
-        <h6>Current Question</h6>
-        <div id="question">{{ question }}</div>
         <button id="recordButton">Record Answer</button>
+        <button id="updateButton">Update</button> <!-- New button to trigger update -->
         <div id="transcription"></div>
     </div>
 {% endblock %}
