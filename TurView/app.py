@@ -1,4 +1,6 @@
-from flask import Flask, flash, redirect, render_template, request, session
+import base64
+from flask import Flask, flash, json, jsonify, redirect, render_template, request
+from flask_socketio import SocketIO, emit
 import sqlite3
 import os
 from datetime import datetime
@@ -10,26 +12,28 @@ import speech_and_text as st
 import handle_falcon as hf
 # import turview_report as tr
 import turview_upgraded_cv as cv
-import util
-
 import time
 import random
 
-'''
-database schema
 
-table users: id, interview date and time, interviwee name 
-table interviews: interview id, user_id, interview cv (link), job description, interview report(link)
-'''
+
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'enforngtdlbnedjkjtrsxcvbnjktyhyetn'
+socketio = SocketIO(app)
+
 
 # App configuration to accept file uploads
-UPLOAD_FOLDER = r"..\TurView\uploads"
+UPLOAD_FOLDER = r"C:\Users\ahmad\OneDrive\Documents\SaqrAI\TurView\uploads"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Session key
-app.secret_key = 'f379f632024d5d4b6f09e4f2e30c3cd87ec392e67f07958be0b5c4284b803051'
+images = {
+    1: '/static/Loading.gif',
+    2: '/static/TurView_Bot_Greeting.png',
+    3: '/static/TurView_Bot_Listening.png',
+    4: '/static/TurView_Bot_Speaking1.png',
+    5: '/static/TurView_Bot_Speaking2.png'
+}
 
 global audio_thread, audio_queue, chatbot_thread, turview_bot, user_id
 
@@ -51,10 +55,12 @@ def history():
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():
-    conn = sqlite3.connect("turview.db")
-    db = conn.cursor()
     global user_id
     if request.method == "POST":
+        # Connect to the database
+        conn = sqlite3.connect("turview.db")
+        db = conn.cursor()
+
         # Get the name
         name = request.form.get("name")
 
@@ -90,7 +96,8 @@ def register():
         db.execute("SELECT id FROM users WHERE name = ? AND cv = ? and job_description = ?", (name, filepath, job_desc))
         user_id = int(db.fetchone()[0])
 
-        db.close()
+
+        conn.close()
 
     elif request.method == "GET":
         return render_template("register.html")
@@ -98,36 +105,21 @@ def register():
     return redirect("/turview")
 
 
-@app.route("/turview", methods=['GET', 'POST'])
+@app.route("/turview")
 def turview():
     global chatbot_thread
     global audio_thread
+    global audio_queue
 
-    if request.method == "POST":
-        if 'audio_data' not in request.files:
-            return 'No file part'
+    chatbot_thread = threading.Thread(target = handle_conversation)
+    chatbot_thread.daemon = False
+    chatbot_thread.start()
     
-        file = request.files['audio_data']
-        
-        if file.filename == '':
-            return 'No selected file'
-        
-        # Save the file
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'audio.webm')
-        file.save(filepath)
-
-        process_audio(filepath)
-
-    elif request.method == "GET":
-        chatbot_thread = threading.Thread(target = handle_conversation)
-        chatbot_thread.daemon = False
-        chatbot_thread.start()
-        
-        audio_thread = threading.Thread(target = handle_transcription)
-        audio_thread.daemon = False
-        audio_thread.start()
-        
-        return render_template("turview.html")
+    audio_thread = threading.Thread(target = handle_transcription)
+    audio_thread.daemon = False
+    audio_thread.start()
+    
+    return render_template("turview.html")
 
 
 def initialize_turview_bot(name, cv, job_description):
@@ -156,41 +148,38 @@ def handle_conversation():
 
     user_cv = cv.extract_text(user_info[1])
 
-    update_state(image_num=4, text="Your TurViewer is Preparing to Interview You, Please Wait!")
+    # util.update_state(image_num=4, text="Your TurViewer is Preparing to Interview You, Please Wait!")
     initialize_turview_bot(name = user_info[0], cv = user_cv, job_description = user_info[2])
     
-    update_state(image_num=3, text="Welcome to the TurView!")
+    update_info(image_num=2, text="<h4>Welcome to the TurView!</h4>")
+
     st.say(turview_bot.greetings)
-    update_state(image_num=0, text="Welcome to the TurView!")
+    # util.update_state(image_num=0, text="Welcome to the TurView!")
     time.sleep(random.uniform(2.5, 5)) # Natural Pause
 
     for question in range(len(turview_bot.questions)):
-        update_state(image_num=2, text=turview_bot.questions[question])
-        time.sleep(random.uniform(2.5, 5)) # Natural Pause
-        st.say(turview_bot.questions[question])
-        update_state(image_num=1, text=turview_bot.questions[question])
+        dir_len = check_dir_len(r"TurView\uploads")
 
+        update_info(image_num=5, text=f"<h6>Current Question: </h6>{turview_bot.questions[question]}")
+        st.say(turview_bot.questions[question])
+
+        ### js ###
         # when record pressed
         # listening face
-        update_state(image_num=1, text=turview_bot.questions[question])
-        if 'file' not in request.files:
-            return 'No file part'
+        # util.update_state(image_num=1, text=turview_bot.questions[question])
+        ### js ####
         
-        file = request.files['file']
-        if file.filename == '':
-            return {'error': 'No selected file'}
-        
-        if file:
-            filepath = os.path.join(UPLOAD_FOLDER, f'recording_{question}.wav')
-            file.save(filepath)
-            audio_queue.put()  # Pass the file path to the transcription thread
+        while True:
+            new_dir_len = check_dir_len(r"TurView\uploads")
+            if new_dir_len > dir_len:
+                break
 
-        # time.sleep(random(2.5, 5)) # Natural Pause
+        time.sleep(random(2.5, 5)) # Natural Pause
 
         filler = turview_bot.get_filler()
-        update_state(image_num=3, text=filler)
+        # util.update_state(image_num=3, text=filler)
         st.say(filler)
-        update_state(image_num=1, text=f"Next Question, Question {question + 1}")
+        # util.update_state(image_num=1, text=f"Next Question, Question {question + 1}")
         time.sleep(random.uniform(2.5, 5)) # Natural Pause
     
     st.say("Thank you for your time and we hope you enjoyed your experience with Ter View! Now you may view your Ter View Report!")
@@ -202,81 +191,47 @@ def handle_conversation():
     chatbot_thread.join()
 
 
-@app.route("/update_state", methods=["POST"])
-def update_state(image_num: int, text: str):
-    return {"image_num": image_num, "text": text}
-    
+def check_dir_len(dir_path):
+    dir_len = 0
+    if os.path.isdir(dir_path):
+        for file in os.listdir(dir_path):
+            if file.endswith(".wav"):
+                dir_len += 1
+    return dir_len
 
-def process_audio(filepath):
-    ...
+
+def update_info(image_num: int, text: str):
+    img_src = images.get(image_num, '')
+    socketio.emit('update_info', {
+        'newMessage': text,
+        'newImageURL': img_src
+    })
+
+    print(f"Current message updated to: {text}")
+    print(f"Current image updated to: {img_src}")
+
+
+@socketio.on('message')
+def handle_audio(data):
+    global user_id
+
+    # Decode the incoming data
+    message = json.loads(data)
+    audio_data = message['audioData']
+    audio_id = message['audioId']
+
+    # Decode the base64 string to binary data
+    audio_bytes = base64.b64decode(audio_data)
+
+    # Save the audio data with a unique file name
+    file_path = os.path.join(UPLOAD_FOLDER, f'{audio_id}.wav')
+    with open(file_path, 'wb') as f:
+        f.write(audio_bytes)
     
+    print(f"Audio saved to {file_path}")
+    emit('response', {'message': f'Audio {audio_id} received and saved!'})
+
+
+
 if __name__ == "__main__":
-    app.run()
-
-
-'''    conn = sqlite3.connect("turview.db")
-    db = conn.cursor()
-
-
-    def handle_transcription(turview_bot, question, filepath):
-        turview_bot.answers_from_user[question] = st.transcribe(filepath)
-
-    def handle_conversation(turview_bot, audio_queue):
-        for question in range(len(turview_bot.questions)):
-            # say question
-            # speakinmg face
-            st.say(turview_bot.questions[question])
-            # greeting face
-            # when record pressed
-            # listening face
-            if 'file' not in request.files:
-                return 'No file part'
-            
-            file = request.files['file']
-            if file.filename == '':
-                return {'error': 'No selected file'}
-            
-            if file:
-                filepath = os.path.join(UPLOAD_FOLDER, f'recording_{question}.wav')
-                file.save(filepath)
-                audio_queue.put()  # Pass the file path to the transcription thread
-            # when recording done --> greeting face
-            
-            # set speaking2 image --> JS
-            # capture audio and post to processing thread
-            # wait for audio to come in.
-            # put audio in queue
-
-            st.say(turview_bot.get_filler())
-            
-    if request.method == "POST":
-        # Query the Database for the user's information
-        user_info = db.execute("SELECT name, cv, job_description FROM users WHERE id = ?", session["user_id"])
-        user_cv = cv.extract_text(user_info[1])
-
-        # Initialize the chatbot
-        turview_bot = hf.FalconChatbot(name = user_info[0], cv = user_cv, job_description = user_info[2])
-        st.say(turview_bot.greetings)
-        
-        # here
-
-       # Start thread for conversation
-        conversation_thread = threading.Thread(target=handle_conversation, args=(turview_bot, audio_queue))
-        
-        # Start ThreadPoolExecutor for transcription
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            conversation_thread.start()
-            
-            while conversation_thread.is_alive() or not audio_queue.empty():
-                try:
-                    question, filepath = audio_queue.get(timeout=90)
-                    executor.submit(handle_transcription, turview_bot, question, filepath)
-                except queue.Empty:
-                    continue
-            
-            conversation_thread.join()
-
-        # say goodbye
-        st.say("""Thank you for your time and we hope you enjoyed your experience with Ter View! 
-            Now you may view your Ter View Report!""")
-        # present user with report '''
+    socketio.run(app, debug=True)

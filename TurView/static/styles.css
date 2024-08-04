@@ -117,3 +117,9 @@ background-color: #FFFFFF;/*#Fdfce8*/
     justify-content: center; /* Center horizontally within the container */
     align-items: center; /* Center vertically within the container */
   }
+
+  #dynamicImage
+  {
+    width: 25%;
+    height: auto;
+  }

@@ -5,74 +5,149 @@
 {% endblock %}
 
 {% block body %}
-    <script>
-        document.getElementById('recordButton').addEventListener('click', function() {
-            if (this.textContent === 'Record') {
-                // Start recording logic
-                this.textContent = 'Stop';
-            } else {
-                // Stop recording logic
-                this.textContent = 'Record';
-            }
-        });
-
-        // Function to update the image and question dynamically
-        function updateInterviewState(imageNum, questionText) {
-            switch(imageNum) {
-                case 1:
-                    imageSrc = 'TurView/static/TurView_Bot_Listening.png';
-                    break;
-                case 2:
-                    imageSrc = 'TurView/static/TurView_Bot_Speaking1.png';
-                    break;
-                case 3:
-                    imageSrc = 'TurView/static/TurView_Bot_Speaking2.png';
-                    break;
-                case 4:
-                    imageSrc = 'TurView/static/Loading.gif';
-                    break;
-                default:
-                    imageSrc = 'TurView/static/TurView_Bot_Greeting.png';
-            }
-            
-            document.getElementById('dynamicImage').src = imageSrc;
-            document.getElementById('currentQuestion').textContent = questionText;
-        }
-
-        // Function to fetch updates from the server using AJAX framework
-        async function fetchUpdate() {
-            fetch('/update_state', {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                updateInterviewState(data.image_num, data.question_text);
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        // Add event listener to the update button
-        document.getElementById('updateButton').addEventListener('click', fetchUpdate);
-    </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
     <div>
     <a href="/"><img src="../static/TurView-logo.png" alt="logo" class="history_logo"></a>
     </div>
 
     <div class="bot-container">
-        <img id="dynamicImage" src="../static/TurView_Bot_Greeting.png" alt="bot">
+        <img id="dynamicImage" src="../static/Loading.gif" alt="bot">
     </div>
 
     <div class="container">
-        <h6>Current Question: <span id="currentQuestion">{{ question }}</span></h6>
+        <p id="text">Loading...</p>
     </div>
-    
+
+    <script>
+        // Ensure the DOM is fully loaded before running the script
+        document.addEventListener('DOMContentLoaded', () => {
+        const socket = io();
+
+        // Handle successful connection
+        socket.on('connect', () => {
+            console.log('Connected to the server');
+            // Initial fetch to get the current message
+            refreshImage();
+        });
+
+        // Handle disconnection
+        socket.on('disconnect', () => {
+            console.log('Disconnected from the server');
+        });
+
+        // Listen for the 'update_message' event from the server
+        socket.on('update_info', function(data) {
+            console.log('Received update_info:', data); // Debugging line
+            const imgElement = document.getElementById('dynamicImage');
+            const textElement = document.getElementById('text');
+            if (imgElement && textElement) {
+                imgElement.src = data.newImageURL;
+                textElement.innerHTML = data.newMessage;
+            } else {
+                console.error('Image or text element not found.');
+            }
+        });
+
+        // Function to manually refresh the text
+        function refreshImage() {
+            console.log('Requesting current image'); // Debugging line
+            socket.emit('request_current_info');
+        }
+    });
+    </script>
     <div>
         <button class="icon-button" id="recordButton">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-record-circle" viewBox="0 0 16 16">
-              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
-              <path d="M11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+            <path d="M11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
             </svg>
-          </button>          
-        <div id="transcription"></div>
+        </button>    
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+                    const recordButton = document.getElementById('recordButton');
+                    const imgElement = document.getElementById('dynamicImage')
+                    let mediaRecorder;
+                    let ws;
+                    let audioChunks = [];
+                    let audioCount = 0;
+                    let isRecording = false;
+
+                    // Initialize WebSocket connection
+                    ws = new WebSocket('ws://localhost:5000/upload-audio');
+
+                    ws.onopen = () => {
+                        console.log('WebSocket connection opened');
+                    };
+
+                    ws.onmessage = (event) => {
+                        console.log('Server response:', event.data);
+                    };
+
+                    ws.onclose = () => {
+                        console.log('WebSocket connection closed');
+                    };
+
+                    // Request permission to use the microphone
+                    navigator.mediaDevices.getUserMedia({ audio: true })
+                        .then(stream => {
+                            mediaRecorder = new MediaRecorder(stream);
+
+                            mediaRecorder.ondataavailable = event => {
+                                audioChunks.push(event.data);
+                            };
+
+                            mediaRecorder.onstop = () => {
+                                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                                sendAudio(audioBlob, audioCount); // Send audio via WebSocket with a unique identifier
+                                audioChunks = [];
+                                audioCount += 1; // Increment the audio file count
+                            };
+
+                            recordButton.addEventListener('click', () => {
+                                if (!isRecording) {
+                                    imgElement.src = '/static/TurView_Bot_Listening.png'
+                                    mediaRecorder.start();
+                                    recordButton.classList.add('recording');
+                                    recordButton.textContent = 'Stop Recording';
+                                    isRecording = true;
+                                    console.log('Recording started');
+                                } else {
+                                    imgElement.src = '/static/TurView_Bot_Greeting.png'
+                                    mediaRecorder.stop();
+                                    recordButton.classList.remove('recording');
+                                    recordButton.textContent = 'Start Recording';
+                                    isRecording = false;
+                                    console.log('Recording stopped');
+                                }
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error accessing microphone:', error);
+                        });
+
+                    // Function to send audio data via WebSocket
+                    function sendAudio(audioBlob, count) {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            const arrayBuffer = reader.result;
+                            const base64String = arrayBufferToBase64(arrayBuffer);
+                            // Send data along with a unique identifier for the audio file
+                            ws.send(JSON.stringify({ audioData: base64String, audioId: `audio_${count}` }));
+                        };
+                        reader.readAsArrayBuffer(audioBlob);
+                    }
+
+                    // Utility function to convert ArrayBuffer to base64
+                    function arrayBufferToBase64(buffer) {
+                        let binary = '';
+                        const bytes = new Uint8Array(buffer);
+                        const len = bytes.byteLength;
+                        for (let i = 0; i < len; i++) {
+                            binary += String.fromCharCode(bytes[i]);
+                        }
+                        return window.btoa(binary);
+                    }
+                });
+    </script>
 {% endblock %}

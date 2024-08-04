@@ -6,3 +6,4 @@ docxtpl
 docx2pdf
 docx2txt
 PyPDF2
+flask_socketio
