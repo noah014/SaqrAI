@@ -125,32 +125,46 @@ def cv_formatter(cv_txt: str) -> Resume:
     cv_writer = FalconChatbot(cv_text = cv_txt, job_desc_text = None, TurView = False)
 
     # 2. Initialize AI's Personality, Feed it the Entire CV as Raw Text and Let it Understand the Entire CV
-    cv_writer.get_response(f"""Your job is to rewrite and transform a CV that I will now give you.
+    unused = cv_writer.get_response(f"""Your job is to rewrite and transform a CV that I will now give you.
 
     Maintain sections like Education, Work Experience, Leadership Experience, Projects and Skills and Additional Training, carefully avoiding the addition of unrequested sections. Your goal is to achieve zero error in formatting and content adaptation, showcasing the user's achievements and skills effectively whilst correcting and upgrading grammar, english, and spelling mistakes. Request more information if details are insufficient and ensure the CV is professional. For each section, return a max of 5 bullet points, be creative if you must.
 
     You must correct any grammatical, spelling, spacing and capitalization mistakes in small details. No additional comments, only return text containing an upgraded CV.
-     
+    
+    Do not add any additional commentary such as "User: " or "Assistant: " to the text. Only return the what is asked of you.                       
+
     This is the CV to Upgrade: {cv_txt}""", 
-     
-    temperature=0.5,
     )
 
     # 3. Format it Section by Section
     queries = {
         # "header": "Return a list of 6 strings that include this person's Name, Email, Phone, Location, LinkedIn, and Github as a list of strings [Name, Email, Phone, Location, LinkedIn, Github]. You will typically find this at the top of the unformatted CV. If any of these fields are empty, return an empty string for that field. Be smart, the CV may not be labelled very well so find the section that matches this. If this entire section is empty, just return one big empty list: []. Make sure to close all parentheses properly. Do not return anything except the list. no extra words at all",
-        "education": "From the previous CV, extract a list I will now describe such that I can parse it in Python (one sublist in the MASTER list of lists for each education) [['University Name 1', 'Location', 'Dates of Enrollment', 'Major', 'GPA', 'Coursework', 'Details'], ['University Name 2', 'Location', 'Dates of Enrollment', 'Major', 'GPA', 'Coursework', 'Details'], etc...]. Stick to this data type, do not return anything else. Be efficient in filling out these fields.",
-        "work": "From the previous CV, extract a list I will now describe such that I can parse it in Python (one sublist in the MASTER list of lists for each work experience): [['Company 1', 'Position 1', 'Location', 'Dates of Work', 'Details'], ['Company 2', 'Position 2', 'Location', 'Dates of Work', 'Details'], etc...] Stick to this data type, do not return anything else. Be efficient in filling out these fields.",
-        "projects": "From the previous CV, extract a list I will now describe such that I can parse it in Python(one sublist in the MASTER list of lists for each project): [['Project Title 1', 'Position 1', 'Location', 'Dates of Work', 'Details'], ['Project Title 2', 'Position 2', 'Location', 'Dates of Work', 'Details'], etc...] Stick to this data type, do not return anything else. Be efficient in filling out these fields.",
-        "lship": "From the previous CV, extract a list I will now describe such that I can parse it in Python(one sublist in the MASTER list of lists for each leadership experience): [['Company 1', 'Position 1', 'Location', 'Dates of Work', 'Details'], ['Company 2', 'Position 2', 'Location', 'Dates of Work', 'Details'], etc...] Stick to this data type, do not return anything else. Be efficient in filling out these fields.",
-        "skills": "From the previous CV, extract a list I will now describe such that I can parse it in Python. Extract the key skills specific to hard and research skills, do also extract training details, workshops and certifications from the CV's Work and Educational experiences and organize them into a list with two sublists. Firstly, key, hard and research skills are job-specific and academia-specific (respectively) abilities acquired through education and training, soft skills are general personality traits. You must only extract and return key skills specific to hard and research skills, NO soft skills. The first sublist should only contain the extracted hard and research skills, each as a separate string element, formatted as simple bullet points without additional nesting. The second sublist should contain training details in a similar format. Training details should include any and all workshops, certificiations, and training details you can extract from the CV, be creative as training details are essential and you MUST return them. Both sublists are part of a single, main list. If there is no information available in the CV for either skills or training, the corresponding sublist should be empty. The main list should never be nested more than two levels deep. If there are no skills and no training details available, return an empty list: []. Make sure to close all parentheses properly."
+        "education": "From the CV, extract a list I will now describe such that I can parse it in Python (one sublist in the MASTER list of lists for each education) [['University Name 1', 'Location', 'Dates of Enrollment', 'Major', 'GPA', 'Coursework', 'Details']]. Stick to this data type, do not return anything else. Be efficient in filling out these fields.",
+        "work": "From the CV, extract a list I will now describe such that I can parse it in Python (one sublist in the MASTER list of lists for each work experience): [['Company 1', 'Position 1', 'Location', 'Dates of Work', 'Details']] Stick to this data type, do not return anything else. Be efficient in filling out these fields.",
+        "projects": "From the CV, extract a list I will now describe such that I can parse it in Python(one sublist in the MASTER list of lists for each project): [['Project Title 1', 'Position 1', 'Location', 'Dates of Work', 'Details']] Stick to this data type, do not return anything else. Be efficient in filling out these fields.",
+        "lship": "From the CV, extract a list I will now describe such that I can parse it in Python(one sublist in the MASTER list of lists for each leadership experience): [['Company 1', 'Position 1', 'Location', 'Dates of Work', 'Details']] Stick to this data type, do not return anything else. Be efficient in filling out these fields.",
+        "skills": "From the CV, extract a list I will now describe such that I can parse it in Python. Extract the key skills specific to hard and research skills, do also extract training details, workshops and certifications from the CV's Work and Educational experiences and organize them into a list with two sublists. Firstly, key, hard and research skills are job-specific and academia-specific (respectively) abilities acquired through education and training, soft skills are general personality traits. You must only extract and return key skills specific to hard and research skills, NO soft skills. The first sublist should only contain the extracted hard and research skills, each as a separate string element, formatted as simple bullet points without additional nesting. The second sublist should contain training details in a similar format. Training details should include any and all workshops, certificiations, and training details you can extract from the CV, be creative as training details are essential and you MUST return them. Both sublists are part of a single, main list. If there is no information available in the CV for either skills or training, the corresponding sublist should be empty. The main list should never be nested more than two levels deep. If there are no skills and no training details available, return an empty list: []. Make sure to close all parentheses properly."
     }
 
     for key in queries:
         # Query the API for the Formatted Section
-        formatted_query_data = cv_writer.get_response(queries[key], temperature=0.5)
-        queries[key] = ast.literal_eval(formatted_query_data) # Convert Literal String to Pythonic Datatype
+        print(f"Current key is {key}")
+        response = cv_writer.get_response(queries[key])
+        if "User: " in response:
+            formatted_query_data = response.split("User: ", 1)[1]
+        else:
+            formatted_query_data = response
+        
+        # Ensure the extracted part is valid Python syntax
+        try:
+            queries[key] = ast.literal_eval(formatted_query_data)  # Convert Literal String to Pythonic Datatype
+        except SyntaxError as e:
+            print(f"SyntaxError: {e}")
+            print(f"Response was: {formatted_query_data}")
+            queries[key] = None  # Handle the error or set a default value
+
         print(f"{key}: {formatted_query_data}")
+
 
     # 4. Create Each Individual Section as an Object
     print("Formulating Header Section") 
