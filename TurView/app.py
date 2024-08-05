@@ -132,7 +132,9 @@ def handle_transcription():
     print("Transcription Started")
     
     while not audio_queue.empty:
-        turview_bot.answers_from_user.append = st.transcribe(audio_queue.get())
+        file = audio_queue.get()
+        print(f"Transcribing {file}")
+        turview_bot.answers_from_user.append = st.transcribe(file)
 
 
 @app.route("/handle_conversation")
@@ -168,16 +170,17 @@ def handle_conversation():
         # listening face
         # util.update_state(image_num=1, text=turview_bot.questions[question])
         ### js ####
-        
+        print("going in the loop")
         while True:
             new_dir_len = check_dir_len(r"TurView\uploads")
             if new_dir_len > dir_len:
                 break
-
+        
+        print("got out of the loop")
         time.sleep(random(2.5, 5)) # Natural Pause
 
         filler = turview_bot.get_filler()
-        # util.update_state(image_num=3, text=filler)
+        #util.update_state(image_num=3, text=filler)
         st.say(filler)
         # util.update_state(image_num=1, text=f"Next Question, Question {question + 1}")
         time.sleep(random.uniform(2.5, 5)) # Natural Pause
@@ -211,27 +214,24 @@ def update_info(image_num: int, text: str):
     print(f"Current image updated to: {img_src}")
 
 
-@socketio.on('message')
-def handle_audio(data):
-    global user_id
-
-    # Decode the incoming data
-    message = json.loads(data)
-    audio_data = message['audioData']
-    audio_id = message['audioId']
-
-    # Decode the base64 string to binary data
-    audio_bytes = base64.b64decode(audio_data)
-
-    # Save the audio data with a unique file name
-    file_path = os.path.join(UPLOAD_FOLDER, f'{audio_id}.wav')
-    with open(file_path, 'wb') as f:
-        f.write(audio_bytes)
+@app.route('/upload-audio', methods=['POST'])
+def upload_audio():
+    global audio_queue
+    if 'audio' not in request.files:
+        return 'No file part'
     
-    print(f"Audio saved to {file_path}")
-    emit('response', {'message': f'Audio {audio_id} received and saved!'})
+    audio = request.files['audio']
+    
+    if audio.filename == '':
+        return 'No selected file'
+    
+    # Save the file to a desired location
+    file_path = os.path.join(UPLOAD_FOLDER, audio.filename)
+    audio.save(file_path)
 
+    audio_queue.put(file_path)
 
+    return 'success' 
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)

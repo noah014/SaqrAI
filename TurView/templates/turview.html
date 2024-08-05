@@ -56,37 +56,18 @@
     });
     </script>
     <div>
-        <button class="icon-button" id="recordButton">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-record-circle" viewBox="0 0 16 16">
-            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
-            <path d="M11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
-            </svg>
-        </button>    
+        <button class="" id="startRecording">Start Recording</button> 
+        <button class="" id="stopRecording">Stop Recording</button>
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-                    const recordButton = document.getElementById('recordButton');
-                    const imgElement = document.getElementById('dynamicImage')
+                    const startButton = document.getElementById('startRecording');
+                    const stopButton = document.getElementById('stopRecording');
+                    const ImageElement = document.getElementById('dynamicImage')
                     let mediaRecorder;
-                    let ws;
                     let audioChunks = [];
-                    let audioCount = 0;
                     let isRecording = false;
-
-                    // Initialize WebSocket connection
-                    ws = new WebSocket('ws://localhost:5000/upload-audio');
-
-                    ws.onopen = () => {
-                        console.log('WebSocket connection opened');
-                    };
-
-                    ws.onmessage = (event) => {
-                        console.log('Server response:', event.data);
-                    };
-
-                    ws.onclose = () => {
-                        console.log('WebSocket connection closed');
-                    };
+                    let audioId = 1;
 
                     // Request permission to use the microphone
                     navigator.mediaDevices.getUserMedia({ audio: true })
@@ -99,24 +80,28 @@
 
                             mediaRecorder.onstop = () => {
                                 const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                                sendAudio(audioBlob, audioCount); // Send audio via WebSocket with a unique identifier
+                                sendAudio(audioBlob, audioId); // Send audio via HTTP POST
                                 audioChunks = [];
-                                audioCount += 1; // Increment the audio file count
                             };
 
-                            recordButton.addEventListener('click', () => {
+                            startButton.addEventListener('click', () => {
                                 if (!isRecording) {
-                                    imgElement.src = '/static/TurView_Bot_Listening.png'
+                                    audioId++;
+                                    ImageElement.src = '/static/TurView_Bot_Listening.png'
                                     mediaRecorder.start();
-                                    recordButton.classList.add('recording');
-                                    recordButton.textContent = 'Stop Recording';
+                                    startButton.disabled = true;
+                                    stopButton.disabled = false;
                                     isRecording = true;
                                     console.log('Recording started');
-                                } else {
-                                    imgElement.src = '/static/TurView_Bot_Greeting.png'
+                                }
+                            });
+
+                            stopButton.addEventListener('click', () => {
+                                if (isRecording) {
+                                    ImageElement.src = '/static/TurView_Bot_Greeting.png'
                                     mediaRecorder.stop();
-                                    recordButton.classList.remove('recording');
-                                    recordButton.textContent = 'Start Recording';
+                                    startButton.disabled = false;
+                                    stopButton.disabled = true;
                                     isRecording = false;
                                     console.log('Recording stopped');
                                 }
@@ -126,27 +111,23 @@
                             console.error('Error accessing microphone:', error);
                         });
 
-                    // Function to send audio data via WebSocket
-                    function sendAudio(audioBlob, count) {
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                            const arrayBuffer = reader.result;
-                            const base64String = arrayBufferToBase64(arrayBuffer);
-                            // Send data along with a unique identifier for the audio file
-                            ws.send(JSON.stringify({ audioData: base64String, audioId: `audio_${count}` }));
-                        };
-                        reader.readAsArrayBuffer(audioBlob);
-                    }
+                    // Function to send audio data via HTTP POST
+                    function sendAudio(audioBlob, audioId) {
+                        const formData = new FormData();
+                        formData.append('audio', audioBlob, `question_${audioId}.wav`);
+                        formData.append('audioId', audioId); // Append audio ID
 
-                    // Utility function to convert ArrayBuffer to base64
-                    function arrayBufferToBase64(buffer) {
-                        let binary = '';
-                        const bytes = new Uint8Array(buffer);
-                        const len = bytes.byteLength;
-                        for (let i = 0; i < len; i++) {
-                            binary += String.fromCharCode(bytes[i]);
-                        }
-                        return window.btoa(binary);
+                        fetch('/upload-audio', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Server response:', data);
+                        })
+                        .catch(error => {
+                            console.error('Error uploading audio:', error);
+                        });
                     }
                 });
     </script>
