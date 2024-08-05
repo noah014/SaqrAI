@@ -1,19 +1,17 @@
-import base64
-from flask import Flask, flash, json, jsonify, redirect, render_template, request
-from flask_socketio import SocketIO, emit
+from flask import Flask, redirect, render_template, request, send_file
+from flask_socketio import SocketIO
 import sqlite3
 import os
 from datetime import datetime
 import threading
 import queue
-from concurrent.futures import ThreadPoolExecutor
-
 import speech_and_text as st
 import handle_falcon as hf
 import turview_report as tr
 import turview_upgraded_cv as cv
 import time
 import random
+import job_descriptions as jd
 
 
 app = Flask(__name__)
@@ -32,7 +30,7 @@ images = {
     5: '/static/TurView_Bot_Speaking2.png'
 }
 
-global audio_thread, audio_queue, chatbot_thread, turview_bot, user_id, transcribe
+global audio_thread, audio_queue, chatbot_thread, turview_bot, user_id, transcribe, user_dir_path
 
 audio_queue = queue.Queue()
 turview_bot = None
@@ -53,6 +51,7 @@ def history():
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     global user_id
+    global user_dir_path
     if request.method == "POST":
         # Connect to the database
         conn = sqlite3.connect("turview.db")
@@ -72,7 +71,6 @@ def register():
             return 'No selected file', 400
 
         # Save the file to the specified upload folder
-        # print(os.getcwd())
         filepath = os.path.join(UPLOAD_FOLDER, file.filename)
         file.save(filepath)
 
@@ -94,10 +92,13 @@ def register():
         db.execute("SELECT id FROM users WHERE name = ? AND cv = ? and job_description = ?", (name, filepath, job_desc))
         user_id = int(db.fetchone()[0])
 
+        user_dir_path = f"{UPLOAD_FOLDER}\\{user_id}"
+        os.mkdir(user_dir_path)
+
         conn.close()
 
     elif request.method == "GET":
-        return render_template("register.html")
+        return render_template("register.html", designer_job_desc=jd.designer_job_desc, software_job_desc=jd.software_job_desc, consultant_job_desc=jd.consultant_job_desc, stratigist_job_desc=jd.stratigist_job_desc)
     
     return redirect("/turview")
 
@@ -157,7 +158,7 @@ def handle_conversation():
     time.sleep(random.uniform(2.5, 5)) # Natural Pause
 
     for question in range(len(turview_bot.questions)):
-        dir_len = check_dir_len(UPLOAD_FOLDER)
+        dir_len = check_dir_len(user_dir_path)
 
         update_info(image_num=5, text=f"<h6>Current Question: {turview_bot.questions[question]}</h6>")
         st.say(turview_bot.questions[question])
@@ -165,45 +166,51 @@ def handle_conversation():
 
         print("Waiting for User to Answer")
         while True:
-            new_dir_len = check_dir_len(UPLOAD_FOLDER)
+            new_dir_len = check_dir_len(user_dir_path)
             if new_dir_len > dir_len:
                 break
         print(f"Answer Received for Question #{question + 1}, Proceeding...")
         
         time.sleep(random.uniform(2.5, 5)) # Natural Pause
 
-        filler = turview_bot.get_filler()
-        update_info(image_num=4, text=f"<h6>{filler}</h6>")
-        st.say(filler)
-        update_info(image_num=2, text=f"<h6>{filler}</h6>")
-        
-        time.sleep(random.uniform(2.5, 5)) # Natural Pause
+        if question != 4:
+            filler = turview_bot.get_filler()
+            update_info(image_num=4, text=f"<h6>{filler}</h6>")
+            st.say(filler)
+            update_info(image_num=2, text=f"<h6>{filler}</h6>")
+            
+            time.sleep(random.uniform(2.5, 5)) # Natural Pause
     
     update_info(image_num=4, text="<h4>Thank You for using TurView, your AI-based key to success in interview preperation and career development!</h4>")
     st.say("Thank you for your time and we hope you enjoyed your experience with Ter View!")
     update_info(image_num=2, text="<h4>Your Report is Being Generated!</h4>")
-    if len(turview_bot.answers_from_user == 5):
-        update_info(image_num=4, text="<h4>Thank You for using TurView, your AI-based key to success in interview preperation and career development!</h4>")
-        st.say("You may now view your Ter View Report!")
-        update_info(image_num=2, text="<h4>You may now view your TurView Report!</h4>")
 
-        # Generate Report
-        turview_bot.analyze_answers()
+    # Generate Report
+    turview_bot.analyze_answers()
 
-        report = tr.TurViewReport()
-        questions = report.Questions(turview_bot.questions)
-        user_answers = report.Answers(turview_bot.answers_from_user)
-        llm_answers = report.Answers(turview_bot.answers_from_llm)
+    report = tr.TurViewReport()
+    questions = report.Questions(turview_bot.questions)
+    user_answers = report.Answers(turview_bot.answers_from_user)
+    llm_answers = report.Answers(turview_bot.answers_from_llm)
 
-        report = tr.TurViewReport(name=turview_bot.name, job_desc=turview_bot.job_desc_text, questions=questions, user_answers=user_answers, llm_answers=llm_answers, results = turview_bot.results)
+    report = tr.TurViewReport(name=turview_bot.name, job_desc=turview_bot.job_desc_text, questions=questions, user_answers=user_answers, llm_answers=llm_answers, results = turview_bot.results)
 
-        report.write_document(output_path=...)
+    report_path = f"{user_dir_path}/turview_report{user_id}.docx"
+    report.write_document(output_path=report_path)
 
-        # Provide Report
+    db.execute("INSERT INTO users (interview report) VALUES (?)", (report_path,))
+    conn.commit()
 
-        # Kill All Threads
-        audio_thread.join()
-        chatbot_thread.join()
+    update_info(image_num=4, text="<h4>Thank You for using TurView, your AI-based key to success in interview preperation and career development!</h4>")
+    st.say("You may now view your Ter View Report!")
+    update_info(image_num=2, text="<h4>You may now view your TurView Report!</h4>")
+    
+    # Kill All Threads
+    audio_thread.join()
+    chatbot_thread.join()
+    conn.close()
+
+    return redirect("/report") 
 
 
 def check_dir_len(dir_path):
@@ -229,6 +236,7 @@ def update_info(image_num: int, text: str):
 @app.route('/upload-audio', methods=['POST'])
 def upload_audio():
     global audio_queue
+    global user_dir_path
 
     if 'audio' not in request.files:
         return 'No file part'
@@ -240,12 +248,25 @@ def upload_audio():
         return 'No selected file'
     
     # Save the file to a desired location
-    file_path = os.path.join(UPLOAD_FOLDER, f"question_{audio_id}.wav")
+    file_path = os.path.join(user_dir_path, f"question_{audio_id}.wav")
     audio.save(file_path)
 
     audio_queue.put(file_path)
 
     return 'success' 
+
+@app.route("/report")
+def report():
+    global user_id
+    conn = sqlite3.connect("turview.db")
+    db = conn.cursor()
+
+    db.execute("SELECT interview_report FROM users WHERE id = ?", (user_id,))
+    report = db.fetchone()[0]
+
+    conn.close()
+
+    return send_file(report)
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
