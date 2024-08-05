@@ -24,7 +24,7 @@ class TurViewReport:
         Results: {self.results}
         """
     
-    def write_document(self, template_path: str, output_path: str) -> None:
+    def write_document(self, output_path: str, template_path: str=r"TurView/Docxtpl Templates/TurView Interview Report.docx") -> None:
         # Load the template
         doc = DocxTemplate(template_path)
 

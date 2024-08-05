@@ -61,74 +61,81 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-                    const startButton = document.getElementById('startRecording');
-                    const stopButton = document.getElementById('stopRecording');
-                    const ImageElement = document.getElementById('dynamicImage')
-                    let mediaRecorder;
-                    let audioChunks = [];
-                    let isRecording = false;
-                    let audioId = 1;
+            const startButton = document.getElementById('startRecording');
+            const stopButton = document.getElementById('stopRecording');
+            const ImageElement = document.getElementById('dynamicImage');
+            let mediaRecorder;
+            let audioChunks = [];
+            let isRecording = false;
+            let audioId = 1;
 
-                    // Request permission to use the microphone
-                    navigator.mediaDevices.getUserMedia({ audio: true })
-                        .then(stream => {
-                            mediaRecorder = new MediaRecorder(stream);
+            // Check if MediaRecorder is available
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                console.error('MediaRecorder API is not supported in this browser.');
+                return;
+            }
 
-                            mediaRecorder.ondataavailable = event => {
-                                audioChunks.push(event.data);
-                            };
+            // Request permission to use the microphone
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
 
-                            mediaRecorder.onstop = () => {
-                                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                                sendAudio(audioBlob, audioId); // Send audio via HTTP POST
-                                audioChunks = [];
-                            };
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
 
-                            startButton.addEventListener('click', () => {
-                                if (!isRecording) {
-                                    audioId++;
-                                    ImageElement.src = '/static/TurView_Bot_Listening.png'
-                                    mediaRecorder.start();
-                                    startButton.disabled = true;
-                                    stopButton.disabled = false;
-                                    isRecording = true;
-                                    console.log('Recording started');
-                                }
-                            });
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        sendAudio(audioBlob, audioId); // Send audio via HTTP POST
+                        audioChunks = [];
+                    };
 
-                            stopButton.addEventListener('click', () => {
-                                if (isRecording) {
-                                    ImageElement.src = '/static/TurView_Bot_Greeting.png'
-                                    mediaRecorder.stop();
-                                    startButton.disabled = false;
-                                    stopButton.disabled = true;
-                                    isRecording = false;
-                                    console.log('Recording stopped');
-                                }
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Error accessing microphone:', error);
-                        });
+                    startButton.addEventListener('click', () => {
+                        if (!isRecording) {
+                            audioId++;
+                            ImageElement.src = '/static/TurView_Bot_Listening.png';
+                            mediaRecorder.start();
+                            startButton.disabled = true;
+                            stopButton.disabled = false;
+                            isRecording = true;
+                            console.log('Recording started');
+                        }
+                    });
 
-                    // Function to send audio data via HTTP POST
-                    function sendAudio(audioBlob, audioId) {
-                        const formData = new FormData();
-                        formData.append('audio', audioBlob, `question_${audioId}.wav`);
-                        formData.append('audioId', audioId); // Append audio ID
-
-                        fetch('/upload-audio', {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log('Server response:', data);
-                        })
-                        .catch(error => {
-                            console.error('Error uploading audio:', error);
-                        });
-                    }
+                    stopButton.addEventListener('click', () => {
+                        if (isRecording) {
+                            ImageElement.src = '/static/TurView_Bot_Greeting.png';
+                            mediaRecorder.stop();
+                            startButton.disabled = false;
+                            stopButton.disabled = true;
+                            isRecording = false;
+                            console.log('Recording stopped');
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error accessing microphone:', error);
                 });
+
+            // Function to send audio data via HTTP POST
+            function sendAudio(audioBlob, audioId) {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, `question_${audioId}.wav`);
+                formData.append('audioId', audioId); // Append audio ID
+
+                fetch('/upload-audio', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Server response:', data);
+                })
+                .catch(error => {
+                    console.error('Error uploading audio:', error);
+                });
+            }
+        });
+
     </script>
 {% endblock %}

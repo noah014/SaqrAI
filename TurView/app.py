@@ -16,15 +16,12 @@ import time
 import random
 
 
-
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'enforngtdlbnedjkjtrsxcvbnjktyhyetn'
 socketio = SocketIO(app)
 
-
 # App configuration to accept file uploads
-UPLOAD_FOLDER = r"C:\Users\ahmad\OneDrive\Documents\SaqrAI\TurView\uploads"
+UPLOAD_FOLDER = r"uploads"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 images = {
@@ -35,13 +32,13 @@ images = {
     5: '/static/TurView_Bot_Speaking2.png'
 }
 
-global audio_thread, audio_queue, chatbot_thread, turview_bot, user_id
+global audio_thread, audio_queue, chatbot_thread, turview_bot, user_id, transcribe
 
 audio_queue = queue.Queue()
 turview_bot = None
 audio_thread = None
 chatbot_thread = None
-
+transcribe = True
 
 @app.route("/")
 def index():
@@ -75,7 +72,8 @@ def register():
             return 'No selected file', 400
 
         # Save the file to the specified upload folder
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        # print(os.getcwd())
+        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
         file.save(filepath)
 
         # Get the job description
@@ -95,7 +93,6 @@ def register():
         # log the user
         db.execute("SELECT id FROM users WHERE name = ? AND cv = ? and job_description = ?", (name, filepath, job_desc))
         user_id = int(db.fetchone()[0])
-
 
         conn.close()
 
@@ -131,10 +128,11 @@ def initialize_turview_bot(name, cv, job_description):
 def handle_transcription():
     print("Transcription Started")
     
-    while not audio_queue.empty:
-        file = audio_queue.get()
-        print(f"Transcribing {file}")
-        turview_bot.answers_from_user.append = st.transcribe(file)
+    while transcribe:
+        while not audio_queue.empty:
+            file = audio_queue.get()
+            print(f"Transcribing {file}")
+            turview_bot.answers_from_user.append = st.transcribe(file)
 
 
 @app.route("/handle_conversation")
@@ -150,48 +148,62 @@ def handle_conversation():
 
     user_cv = cv.extract_text(user_info[1])
 
-    # util.update_state(image_num=4, text="Your TurViewer is Preparing to Interview You, Please Wait!")
     initialize_turview_bot(name = user_info[0], cv = user_cv, job_description = user_info[2])
     
     update_info(image_num=2, text="<h4>Welcome to the TurView!</h4>")
 
     st.say(turview_bot.greetings)
-    # util.update_state(image_num=0, text="Welcome to the TurView!")
+    
     time.sleep(random.uniform(2.5, 5)) # Natural Pause
 
     for question in range(len(turview_bot.questions)):
-        dir_len = check_dir_len(r"TurView\uploads")
+        dir_len = check_dir_len(UPLOAD_FOLDER)
 
-        update_info(image_num=5, text=f"<h6>Current Question: </h6>{turview_bot.questions[question]}")
+        update_info(image_num=5, text=f"<h6>Current Question: {turview_bot.questions[question]}</h6>")
         st.say(turview_bot.questions[question])
+        update_info(image_num=2, text=f"<h6>Current Question: {turview_bot.questions[question]}</h6>")
 
-        ### js ###
-        # when record pressed
-        # listening face
-        # util.update_state(image_num=1, text=turview_bot.questions[question])
-        ### js ####
-        print("going in the loop")
+        print("Waiting for User to Answer")
         while True:
-            new_dir_len = check_dir_len(r"TurView\uploads")
+            new_dir_len = check_dir_len(UPLOAD_FOLDER)
             if new_dir_len > dir_len:
                 break
+        print(f"Answer Received for Question #{question + 1}, Proceeding...")
         
-        print("got out of the loop")
-        time.sleep(random(2.5, 5)) # Natural Pause
+        time.sleep(random.uniform(2.5, 5)) # Natural Pause
 
         filler = turview_bot.get_filler()
-        #util.update_state(image_num=3, text=filler)
+        update_info(image_num=4, text=f"<h6>{filler}</h6>")
         st.say(filler)
-        # util.update_state(image_num=1, text=f"Next Question, Question {question + 1}")
+        update_info(image_num=2, text=f"<h6>{filler}</h6>")
+        
         time.sleep(random.uniform(2.5, 5)) # Natural Pause
     
-    st.say("Thank you for your time and we hope you enjoyed your experience with Ter View! Now you may view your Ter View Report!")
+    update_info(image_num=4, text="<h4>Thank You for using TurView, your AI-based key to success in interview preperation and career development!</h4>")
+    st.say("Thank you for your time and we hope you enjoyed your experience with Ter View!")
+    update_info(image_num=2, text="<h4>Your Report is Being Generated!</h4>")
+    if len(turview_bot.answers_from_user == 5):
+        update_info(image_num=4, text="<h4>Thank You for using TurView, your AI-based key to success in interview preperation and career development!</h4>")
+        st.say("You may now view your Ter View Report!")
+        update_info(image_num=2, text="<h4>You may now view your TurView Report!</h4>")
 
-    # provide report
+        # Generate Report
+        turview_bot.analyze_answers()
 
-    # Kill All Threads
-    audio_thread.join()
-    chatbot_thread.join()
+        report = tr.TurViewReport()
+        questions = report.Questions(turview_bot.questions)
+        user_answers = report.Answers(turview_bot.answers_from_user)
+        llm_answers = report.Answers(turview_bot.answers_from_llm)
+
+        report = tr.TurViewReport(name=turview_bot.name, job_desc=turview_bot.job_desc_text, questions=questions, user_answers=user_answers, llm_answers=llm_answers, results = turview_bot.results)
+
+        report.write_document(output_path=...)
+
+        # Provide Report
+
+        # Kill All Threads
+        audio_thread.join()
+        chatbot_thread.join()
 
 
 def check_dir_len(dir_path):
@@ -217,16 +229,18 @@ def update_info(image_num: int, text: str):
 @app.route('/upload-audio', methods=['POST'])
 def upload_audio():
     global audio_queue
+
     if 'audio' not in request.files:
         return 'No file part'
     
     audio = request.files['audio']
-    
+    audio_id = request.form.get('audioId', None)    
+
     if audio.filename == '':
         return 'No selected file'
     
     # Save the file to a desired location
-    file_path = os.path.join(UPLOAD_FOLDER, audio.filename)
+    file_path = os.path.join(UPLOAD_FOLDER, f"question_{audio_id}.wav")
     audio.save(file_path)
 
     audio_queue.put(file_path)
