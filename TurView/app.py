@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import speech_and_text as st
 import handle_falcon as hf
-# import turview_report as tr
+import turview_report as tr
 import turview_upgraded_cv as cv
 import time
 import random
